@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Camera, Moon, Bell, LogOut, Shield, Trash2, Check, Mail } from 'lucide-react';
+import { Camera, Moon, Bell, LogOut, Shield, Trash2, Check, Mail, ChevronDown } from 'lucide-react';
 import { useWorkspace } from '../data/workspace-context';
 import GitHubIntegrationCard from './github-integration-card';
 
@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [passwordSending, setPasswordSending] = useState(false);
   const [passwordStatus, setPasswordStatus] = useState<{ kind: 'idle' | 'success' | 'error'; text: string }>({ kind: 'idle', text: '' });
+  const [notificationsOpen, setNotificationsOpen] = useState(true);
 
   useEffect(() => {
     setName(currentUser?.name || '');
@@ -112,23 +113,31 @@ export default function SettingsPage() {
           </div>
 
           <div className="matrix-panel rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell size={15} style={{ color: '#8cff5a' }} />
-              <h2 className="matrix-title" style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700 }}>Notifications</h2>
-            </div>
-            <div className="space-y-0.5">
-              {notifs.map((n) => (
-                <div key={n.id} className="flex items-center justify-between py-3 px-1" style={{ borderBottom: '1px solid rgba(121,255,102,0.06)' }}>
-                  <div>
-                    <div style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 500 }}>{n.label}</div>
-                    <div className="matrix-muted" style={{ fontSize: '11px' }}>{n.desc}</div>
+            <button
+              onClick={() => setNotificationsOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3"
+            >
+              <div className="flex items-center gap-2">
+                <Bell size={15} style={{ color: '#8cff5a' }} />
+                <h2 className="matrix-title" style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700 }}>Notifications</h2>
+              </div>
+              <ChevronDown size={15} style={{ color: '#89bd80', transform: notificationsOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease' }} />
+            </button>
+            {notificationsOpen && (
+              <div className="space-y-0.5 mt-4">
+                {notifs.map((n) => (
+                  <div key={n.id} className="flex items-center justify-between py-3 px-1" style={{ borderBottom: '1px solid rgba(121,255,102,0.06)' }}>
+                    <div>
+                      <div style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 500 }}>{n.label}</div>
+                      <div className="matrix-muted" style={{ fontSize: '11px' }}>{n.desc}</div>
+                    </div>
+                    <button onClick={() => setNotifStates((p) => ({ ...p, [n.id]: !p[n.id] }))} className="rounded-full transition-all" style={{ width: '42px', height: '23px', background: notifStates[n.id] ? '#173017' : 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', position: 'relative', flexShrink: 0 }}>
+                      <div className="absolute top-1 rounded-full transition-all" style={{ width: '15px', height: '15px', left: notifStates[n.id] ? '23px' : '4px', background: notifStates[n.id] ? '#8cff5a' : '#5e7f58' }} />
+                    </button>
                   </div>
-                  <button onClick={() => setNotifStates((p) => ({ ...p, [n.id]: !p[n.id] }))} className="rounded-full transition-all" style={{ width: '42px', height: '23px', background: notifStates[n.id] ? '#173017' : 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', position: 'relative', flexShrink: 0 }}>
-                    <div className="absolute top-1 rounded-full transition-all" style={{ width: '15px', height: '15px', left: notifStates[n.id] ? '23px' : '4px', background: notifStates[n.id] ? '#8cff5a' : '#5e7f58' }} />
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="matrix-panel rounded-2xl p-6">

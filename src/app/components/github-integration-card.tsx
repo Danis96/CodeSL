@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Github, Link2, RefreshCw, Shield, Unplug } from 'lucide-react';
+import { Check, ChevronDown, Github, Link2, RefreshCw, Shield, Unplug } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWorkspace, type GitHubRepositoryOption } from '../data/workspace-context';
 
@@ -25,6 +25,7 @@ export default function GitHubIntegrationCard() {
   const [importingRepoId, setImportingRepoId] = useState<number | null>(null);
   const [syncingProjectId, setSyncingProjectId] = useState<string | null>(null);
   const [repositoryPage, setRepositoryPage] = useState(1);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const connectedProjects = useMemo(
     () => projects.filter((project) => project.github),
@@ -135,7 +136,7 @@ export default function GitHubIntegrationCard() {
 
   return (
     <div className="matrix-panel rounded-2xl p-6">
-      <div className="flex items-start justify-between gap-4 mb-5">
+      <button onClick={() => setIsExpanded((current) => !current)} className="flex w-full items-start justify-between gap-4 mb-5 text-left">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Github size={15} style={{ color: '#ebffe5' }} />
@@ -145,19 +146,24 @@ export default function GitHubIntegrationCard() {
             Install GitHub App. Import repos. Sync issues into Slave tasks.
           </div>
         </div>
-        <span
-          className="rounded-full px-2.5 py-1"
-          style={{
-            background: currentUser?.github ? 'rgba(116,255,125,0.14)' : 'rgba(121,255,102,0.08)',
-            color: currentUser?.github ? '#74ff7d' : '#89bd80',
-            fontSize: '10px',
-            fontWeight: 700,
-          }}
-        >
-          {currentUser?.github ? 'CONNECTED' : 'NOT CONNECTED'}
-        </span>
-      </div>
+        <div className="flex items-center gap-3">
+          <span
+            className="rounded-full px-2.5 py-1"
+            style={{
+              background: currentUser?.github ? 'rgba(116,255,125,0.14)' : 'rgba(121,255,102,0.08)',
+              color: currentUser?.github ? '#74ff7d' : '#89bd80',
+              fontSize: '10px',
+              fontWeight: 700,
+            }}
+          >
+            {currentUser?.github ? 'CONNECTED' : 'NOT CONNECTED'}
+          </span>
+          <ChevronDown size={15} style={{ color: '#89bd80', transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 180ms ease', flexShrink: 0 }} />
+        </div>
+      </button>
 
+      {isExpanded && (
+        <>
       <div className="rounded-2xl p-5 mb-5" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
         <div className="flex flex-wrap items-center gap-3 justify-between">
           <div>
@@ -215,18 +221,18 @@ export default function GitHubIntegrationCard() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
               {repositories.length === 0 && (
-                <div className="rounded-2xl p-4 matrix-muted" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)', fontSize: '12px' }}>
+                <div className="xl:col-span-2 rounded-2xl p-4 matrix-muted" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)', fontSize: '12px' }}>
                   {loadingRepos ? 'Loading repositories...' : 'No repositories found on this installation yet.'}
                 </div>
               )}
               {paginatedRepositories.map((repository) => (
-                <div key={repository.id} className="rounded-2xl p-4" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
+                <div key={repository.id} className="rounded-2xl p-3.5" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <div style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700 }}>{repository.fullName}</div>
+                        <div style={{ color: '#ebffe5', fontSize: '12px', fontWeight: 700 }}>{repository.fullName}</div>
                         {repository.alreadyImportedProjectId && (
                           <span className="rounded-full px-2 py-0.5" style={{ background: 'rgba(116,255,125,0.14)', color: '#74ff7d', fontSize: '10px', fontWeight: 700 }}>
                             IMPORTED
@@ -241,18 +247,18 @@ export default function GitHubIntegrationCard() {
                       onClick={() => void handleImport(repository.id)}
                       disabled={importingRepoId === repository.id}
                       className="rounded-xl px-3 py-2 transition-all hover:opacity-90"
-                      style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.14)', color: '#8cff5a', fontSize: '12px', fontWeight: 700 }}
+                      style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.14)', color: '#8cff5a', fontSize: '11px', fontWeight: 700 }}
                     >
                       {importingRepoId === repository.id ? 'Importing...' : repository.alreadyImportedProjectId ? 'Re-sync Import' : 'Import Repo'}
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-4">
+                  <div className="grid grid-cols-1 gap-2.5 mt-3">
                     <select
                       value={repoTargets[repository.id] || NEW_PROJECT}
                       onChange={(event) => setRepoTargets((current) => ({ ...current, [repository.id]: event.target.value }))}
                       className="rounded-xl px-3 outline-none"
-                      style={{ background: 'rgba(8,18,8,0.92)', border: '1px solid rgba(121,255,102,0.12)', color: '#c7eac1', fontSize: '12px', height: '40px', colorScheme: 'dark' }}
+                      style={{ background: 'rgba(8,18,8,0.92)', border: '1px solid rgba(121,255,102,0.12)', color: '#c7eac1', fontSize: '11px', height: '38px', colorScheme: 'dark' }}
                     >
                       <option value={NEW_PROJECT}>Create new Slave project</option>
                       {projects.map((project) => (
@@ -261,14 +267,14 @@ export default function GitHubIntegrationCard() {
                         </option>
                       ))}
                     </select>
-                    <a href={repository.htmlUrl} target="_blank" rel="noreferrer" style={{ color: '#8cff5a', fontSize: '12px', alignSelf: 'center' }}>
+                    <a href={repository.htmlUrl} target="_blank" rel="noreferrer" style={{ color: '#8cff5a', fontSize: '11px' }}>
                       Open repo
                     </a>
                   </div>
                 </div>
               ))}
               {repositories.length > REPOSITORIES_PER_PAGE && (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
+                <div className="xl:col-span-2 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
                   <div className="matrix-muted" style={{ fontSize: '11px' }}>
                     Showing {(repositoryPage - 1) * REPOSITORIES_PER_PAGE + 1}-{Math.min(repositoryPage * REPOSITORIES_PER_PAGE, repositories.length)} of {repositories.length} repositories
                   </div>
@@ -345,6 +351,8 @@ export default function GitHubIntegrationCard() {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
