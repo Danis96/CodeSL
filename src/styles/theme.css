@@ -1,0 +1,301 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --background: #ffffff;
+  --foreground: #0A0B11;
+  --card: #ffffff;
+  --card-foreground: #0A0B11;
+  --popover: #ffffff;
+  --popover-foreground: #0A0B11;
+  --primary: #E84825;
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f8;
+  --secondary-foreground: #0A0B11;
+  --muted: #f0f0f5;
+  --muted-foreground: #6B6D82;
+  --accent: #E84825;
+  --accent-foreground: #ffffff;
+  --destructive: #C53030;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.08);
+  --input: transparent;
+  --input-background: #f3f3f7;
+  --switch-background: #cbced4;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: rgba(232, 72, 37, 0.4);
+  --chart-1: #E84825;
+  --chart-2: #8B5CF6;
+  --chart-3: #3B82F6;
+  --chart-4: #06B6D4;
+  --chart-5: #10B981;
+  --radius: 0.75rem;
+  --sidebar: #f8f8fc;
+  --sidebar-foreground: #0A0B11;
+  --sidebar-primary: #E84825;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f5;
+  --sidebar-accent-foreground: #0A0B11;
+  --sidebar-border: rgba(0, 0, 0, 0.06);
+  --sidebar-ring: rgba(232, 72, 37, 0.4);
+}
+
+.dark {
+  --background: #050805;
+  --foreground: #d7f7d1;
+  --card: #091109;
+  --card-foreground: #d7f7d1;
+  --popover: #0b140b;
+  --popover-foreground: #d7f7d1;
+  --primary: #8cff5a;
+  --primary-foreground: #041004;
+  --secondary: #0c160c;
+  --secondary-foreground: #d7f7d1;
+  --muted: #0a120a;
+  --muted-foreground: #76a56b;
+  --accent: #6dff6a;
+  --accent-foreground: #041004;
+  --destructive: #ff7070;
+  --destructive-foreground: #ffffff;
+  --border: rgba(121, 255, 102, 0.14);
+  --input: #0b150b;
+  --input-background: #0b150b;
+  --switch-background: #173017;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: rgba(140, 255, 90, 0.45);
+  --chart-1: #8cff5a;
+  --chart-2: #4ddf83;
+  --chart-3: #97ffba;
+  --chart-4: #d2ff5b;
+  --chart-5: #70ffbd;
+  --radius: 0.75rem;
+  --sidebar: #071007;
+  --sidebar-foreground: #d7f7d1;
+  --sidebar-primary: #8cff5a;
+  --sidebar-primary-foreground: #041004;
+  --sidebar-accent: #0d180d;
+  --sidebar-accent-foreground: #d7f7d1;
+  --sidebar-border: rgba(121, 255, 102, 0.14);
+  --sidebar-ring: rgba(140, 255, 90, 0.45);
+
+  /* Custom accent palette for task cards */
+  --clr-purple: #8bff77;
+  --clr-blue: #62ffbf;
+  --clr-cyan: #37ffaf;
+  --clr-yellow: #dfff69;
+  --clr-green: #74ff7d;
+  --clr-pink: #bdff7d;
+  --clr-orange: #8cff5a;
+
+  /* Surface elevations */
+  --surface-0: #050805;
+  --surface-1: #071007;
+  --surface-2: #0a140a;
+  --surface-3: #0d180d;
+  --surface-4: #122012;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at top left, rgba(111, 255, 94, 0.08), transparent 28%),
+      radial-gradient(circle at top right, rgba(84, 208, 110, 0.05), transparent 24%),
+      linear-gradient(rgba(101, 255, 113, 0.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(101, 255, 113, 0.055) 1px, transparent 1px),
+      linear-gradient(180deg, #040704 0%, #071007 100%);
+    background-size: auto, auto, 160px 160px, 160px 160px, auto;
+    background-position: 0 0, 100% 0, 0 0, 0 0, 0 0;
+    text-shadow: 0 0 10px rgba(111, 255, 94, 0.06);
+  }
+
+  /**
+  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
+  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
+  */
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: rgba(140, 255, 90, 0.24);
+    color: #f6fff2;
+  }
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  label,
+  button,
+  input,
+  textarea,
+  kbd {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+@layer components {
+  .matrix-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .matrix-shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(180deg, rgba(130, 255, 118, 0.015) 0%, transparent 45%, rgba(130, 255, 118, 0.02) 100%);
+    opacity: 0.7;
+    z-index: -1;
+  }
+
+  .matrix-panel {
+    background: linear-gradient(180deg, rgba(10, 20, 10, 0.94) 0%, rgba(7, 15, 7, 0.97) 100%);
+    border: 1px solid rgba(121, 255, 102, 0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(209, 255, 203, 0.04),
+      0 0 0 1px rgba(68, 150, 53, 0.06),
+      0 24px 60px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(8px);
+  }
+
+  .matrix-panel-soft {
+    background: linear-gradient(180deg, rgba(12, 21, 12, 0.84) 0%, rgba(8, 15, 8, 0.92) 100%);
+    border: 1px solid rgba(121, 255, 102, 0.12);
+  }
+
+  .matrix-title {
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .matrix-kicker {
+    color: #6eb862;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .matrix-copy {
+    color: #c7eac1;
+  }
+
+  .matrix-muted {
+    color: #76a56b;
+  }
+
+  .matrix-button {
+    background: linear-gradient(135deg, rgba(120, 255, 99, 0.18) 0%, rgba(93, 210, 79, 0.26) 100%);
+    border: 1px solid rgba(131, 255, 110, 0.26);
+    color: #dfffd8;
+    box-shadow: 0 0 24px rgba(90, 255, 90, 0.12);
+  }
+
+  .matrix-button-ghost {
+    background: rgba(10, 20, 10, 0.72);
+    border: 1px solid rgba(121, 255, 102, 0.12);
+    color: #89bd80;
+  }
+
+  .matrix-input {
+    background: rgba(8, 18, 8, 0.88);
+    border: 1px solid rgba(121, 255, 102, 0.12);
+    color: #e2ffd8;
+  }
+}

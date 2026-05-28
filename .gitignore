@@ -1,0 +1,4 @@
+node_modules/
+.netlify/
+functions/.env*
+functions/*.pem
