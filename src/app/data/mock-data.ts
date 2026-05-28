@@ -171,6 +171,7 @@ export function buildMemberProfile(input: {
   github?: GitHubConnection;
 }): Member {
   const name = input.name || input.email || 'Workspace User';
+  const github = input.github ? { github: input.github } : {};
 
   return {
     id: input.id,
@@ -180,7 +181,7 @@ export function buildMemberProfile(input: {
     initials: getInitials(name),
     color: input.color || getProfileColor(input.id || input.email || name),
     joinedAt: input.joinedAt || new Date().toISOString(),
-    github: input.github,
+    ...github,
   };
 }
 
