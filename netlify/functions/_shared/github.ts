@@ -22,6 +22,33 @@ function getEnv(name: (typeof requiredEnv)[number]) {
   return value;
 }
 
+function normalizePrivateKey(raw: string) {
+  const trimmed = raw.trim();
+  const unquoted =
+    (trimmed.startsWith('"') && trimmed.endsWith('"'))
+    || (trimmed.startsWith("'") && trimmed.endsWith("'"))
+      ? trimmed.slice(1, -1)
+      : trimmed;
+
+  const withNewlines = unquoted
+    .replace(/\\r\\n/g, '\n')
+    .replace(/\\n/g, '\n');
+
+  // Support base64-encoded PEM secrets in env vars.
+  if (!withNewlines.includes('BEGIN') && !withNewlines.includes('\n')) {
+    try {
+      const decoded = Buffer.from(withNewlines, 'base64').toString('utf8').trim();
+      if (decoded.includes('BEGIN')) {
+        return decoded;
+      }
+    } catch {
+      // Ignore decode errors and fall back to the original value.
+    }
+  }
+
+  return withNewlines;
+}
+
 function getAdminApp() {
   if (getApps().length > 0) {
     return getApps()[0];
@@ -31,7 +58,7 @@ function getAdminApp() {
     credential: cert({
       projectId: getEnv('FIREBASE_PROJECT_ID'),
       clientEmail: getEnv('FIREBASE_CLIENT_EMAIL'),
-      privateKey: getEnv('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n'),
+      privateKey: normalizePrivateKey(getEnv('FIREBASE_PRIVATE_KEY')),
     }),
     projectId: getEnv('FIREBASE_PROJECT_ID'),
   });
@@ -85,7 +112,7 @@ function createGitHubAppJwt() {
   const signature = createSign('RSA-SHA256')
     .update(unsigned)
     .end()
-    .sign(getEnv('GITHUB_PRIVATE_KEY').replace(/\\n/g, '\n'), 'base64url');
+    .sign(normalizePrivateKey(getEnv('GITHUB_PRIVATE_KEY')), 'base64url');
   return `${unsigned}.${signature}`;
 }
 
