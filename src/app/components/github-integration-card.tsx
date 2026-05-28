@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useWorkspace, type GitHubRepositoryOption } from '../data/workspace-context';
 
 const NEW_PROJECT = '__new__';
+const REPOSITORIES_PER_PAGE = 10;
 
 export default function GitHubIntegrationCard() {
   const {
@@ -23,11 +24,17 @@ export default function GitHubIntegrationCard() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [importingRepoId, setImportingRepoId] = useState<number | null>(null);
   const [syncingProjectId, setSyncingProjectId] = useState<string | null>(null);
+  const [repositoryPage, setRepositoryPage] = useState(1);
 
   const connectedProjects = useMemo(
     () => projects.filter((project) => project.github),
     [projects],
   );
+  const repositoryPageCount = Math.max(1, Math.ceil(repositories.length / REPOSITORIES_PER_PAGE));
+  const paginatedRepositories = useMemo(() => {
+    const startIndex = (repositoryPage - 1) * REPOSITORIES_PER_PAGE;
+    return repositories.slice(startIndex, startIndex + REPOSITORIES_PER_PAGE);
+  }, [repositories, repositoryPage]);
 
   const loadRepositories = async () => {
     if (!currentUser?.github) {
@@ -60,6 +67,10 @@ export default function GitHubIntegrationCard() {
   useEffect(() => {
     void loadRepositories();
   }, [currentUser?.github?.installationId]);
+
+  useEffect(() => {
+    setRepositoryPage((currentPage) => Math.min(currentPage, repositoryPageCount));
+  }, [repositoryPageCount]);
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -210,7 +221,7 @@ export default function GitHubIntegrationCard() {
                   {loadingRepos ? 'Loading repositories...' : 'No repositories found on this installation yet.'}
                 </div>
               )}
-              {repositories.map((repository) => (
+              {paginatedRepositories.map((repository) => (
                 <div key={repository.id} className="rounded-2xl p-4" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -256,6 +267,48 @@ export default function GitHubIntegrationCard() {
                   </div>
                 </div>
               ))}
+              {repositories.length > REPOSITORIES_PER_PAGE && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
+                  <div className="matrix-muted" style={{ fontSize: '11px' }}>
+                    Showing {(repositoryPage - 1) * REPOSITORIES_PER_PAGE + 1}-{Math.min(repositoryPage * REPOSITORIES_PER_PAGE, repositories.length)} of {repositories.length} repositories
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => setRepositoryPage((currentPage) => Math.max(1, currentPage - 1))}
+                      disabled={repositoryPage === 1}
+                      className="rounded-xl px-3 py-2 transition-all hover:opacity-90 disabled:opacity-40"
+                      style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', color: '#89bd80', fontSize: '12px', fontWeight: 600 }}
+                    >
+                      Prev
+                    </button>
+                    {Array.from({ length: repositoryPageCount }, (_, index) => index + 1).map((pageNumber) => (
+                      <button
+                        key={pageNumber}
+                        onClick={() => setRepositoryPage(pageNumber)}
+                        className="rounded-xl px-3 py-2 transition-all hover:opacity-90"
+                        style={{
+                          background: pageNumber === repositoryPage ? 'rgba(116,255,125,0.18)' : 'rgba(121,255,102,0.08)',
+                          border: '1px solid rgba(121,255,102,0.12)',
+                          color: pageNumber === repositoryPage ? '#e8ffe1' : '#89bd80',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          minWidth: '40px',
+                        }}
+                      >
+                        {pageNumber}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setRepositoryPage((currentPage) => Math.min(repositoryPageCount, currentPage + 1))}
+                      disabled={repositoryPage === repositoryPageCount}
+                      className="rounded-xl px-3 py-2 transition-all hover:opacity-90 disabled:opacity-40"
+                      style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', color: '#89bd80', fontSize: '12px', fontWeight: 600 }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

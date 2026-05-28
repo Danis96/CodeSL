@@ -1,5 +1,5 @@
 import type { Config, Context } from '@netlify/functions';
-import { createHmac, createSign, timingSafeEqual } from 'node:crypto';
+import { createHmac, createPrivateKey, createSign, timingSafeEqual } from 'node:crypto';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { FieldValue, getFirestore } from 'firebase-admin/firestore';
@@ -47,6 +47,38 @@ function normalizePrivateKey(raw: string) {
   }
 
   return withNewlines;
+}
+
+function summarizePrivateKey(raw: string) {
+  const lines = raw.split('\n').filter(Boolean);
+  return {
+    length: raw.length,
+    lineCount: lines.length,
+    firstLine: lines[0] || '',
+    lastLine: lines.at(-1) || '',
+    hasBegin: raw.includes('BEGIN'),
+  };
+}
+
+function getSigningKey(raw: string) {
+  const normalized = normalizePrivateKey(raw);
+
+  if (normalized.includes('BEGIN')) {
+    return createPrivateKey({ key: normalized, format: 'pem' });
+  }
+
+  const decoded = Buffer.from(normalized, 'base64');
+
+  const asText = decoded.toString('utf8').trim();
+  if (asText.includes('BEGIN')) {
+    return createPrivateKey({ key: asText, format: 'pem' });
+  }
+
+  try {
+    return createPrivateKey({ key: decoded, format: 'der', type: 'pkcs8' });
+  } catch {
+    return createPrivateKey({ key: decoded, format: 'der', type: 'pkcs1' });
+  }
 }
 
 function getAdminApp() {
@@ -109,10 +141,22 @@ function createGitHubAppJwt() {
     exp: now + 540,
     iss: getEnv('GITHUB_APP_ID'),
   }))}`;
+  const rawKey = getEnv('GITHUB_PRIVATE_KEY');
+  let signingKey;
+
+  try {
+    signingKey = getSigningKey(rawKey);
+  } catch (error) {
+    throw new Error(
+      `Unable to parse GITHUB_PRIVATE_KEY: ${JSON.stringify(summarizePrivateKey(normalizePrivateKey(rawKey)))}`,
+      { cause: error },
+    );
+  }
+
   const signature = createSign('RSA-SHA256')
     .update(unsigned)
     .end()
-    .sign(normalizePrivateKey(getEnv('GITHUB_PRIVATE_KEY')), 'base64url');
+    .sign(signingKey, 'base64url');
   return `${unsigned}.${signature}`;
 }
 
