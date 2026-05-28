@@ -10,7 +10,7 @@ import MembersPage from "./components/members-page";
 import StatsPage from "./components/stats-page";
 import SettingsPage from "./components/settings-page";
 import { useWorkspace } from "./data/workspace-context";
-import { Toaster } from "sonner";
+import { Toaster, toast } from "sonner";
 
 export type Page =
   | "dashboard"
@@ -22,12 +22,19 @@ export type Page =
   | "settings";
 
 export default function App() {
-  const { authUser, authLoading, projects } = useWorkspace();
+  const {
+    authUser,
+    authLoading,
+    projects,
+    completeGitHubInstallation,
+  } = useWorkspace();
   const [currentPage, setCurrentPage] =
     useState<Page>("dashboard");
   const [selectedProjectId, setSelectedProjectId] =
     useState<string>("");
   const [sidebarCollapsed, setSidebarCollapsed] =
+    useState(false);
+  const [finishingGitHubInstall, setFinishingGitHubInstall] =
     useState(false);
 
   useEffect(() => {
@@ -39,6 +46,42 @@ export default function App() {
       setSelectedProjectId(projects[0].id);
     }
   }, [projects, selectedProjectId]);
+
+  useEffect(() => {
+    if (!authUser || finishingGitHubInstall) {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const installationId = params.get("installation_id");
+    const numericInstallationId = Number(installationId);
+
+    if (!numericInstallationId) {
+      return;
+    }
+
+    setFinishingGitHubInstall(true);
+
+    void completeGitHubInstallation(numericInstallationId)
+      .then(() => {
+        toast.success("GitHub connected.");
+        params.delete("installation_id");
+        const nextQuery = params.toString();
+        window.history.replaceState(
+          {},
+          "",
+          `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}`,
+        );
+        setCurrentPage("settings");
+      })
+      .catch((error) => {
+        console.error(error);
+        toast.error("GitHub install finish failed.");
+      })
+      .finally(() => {
+        setFinishingGitHubInstall(false);
+      });
+  }, [authUser, completeGitHubInstallation, finishingGitHubInstall]);
 
   if (authLoading) {
     return (

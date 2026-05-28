@@ -20,7 +20,6 @@ export default function GitHubIntegrationCard() {
   const [repoTargets, setRepoTargets] = useState<Record<number, string>>({});
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [finishingInstall, setFinishingInstall] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const [importingRepoId, setImportingRepoId] = useState<number | null>(null);
   const [syncingProjectId, setSyncingProjectId] = useState<string | null>(null);
@@ -61,38 +60,6 @@ export default function GitHubIntegrationCard() {
   useEffect(() => {
     void loadRepositories();
   }, [currentUser?.github?.installationId]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const installationId = params.get('installation_id');
-
-    if (!installationId || finishingInstall) {
-      return;
-    }
-
-    const numericInstallationId = Number(installationId);
-    if (!numericInstallationId) {
-      return;
-    }
-
-    setFinishingInstall(true);
-
-    void completeGitHubInstallation(numericInstallationId)
-      .then(async () => {
-        toast.success('GitHub connected.');
-        params.delete('installation_id');
-        const nextQuery = params.toString();
-        window.history.replaceState({}, '', `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`);
-        await loadRepositories();
-      })
-      .catch((error) => {
-        console.error(error);
-        toast.error('GitHub install finish failed.');
-      })
-      .finally(() => {
-        setFinishingInstall(false);
-      });
-  }, [completeGitHubInstallation, finishingInstall]);
 
   const handleConnect = async () => {
     setConnecting(true);
@@ -194,7 +161,7 @@ export default function GitHubIntegrationCard() {
             {!currentUser?.github && (
               <button
                 onClick={() => void handleConnect()}
-                disabled={connecting || finishingInstall}
+                disabled={connecting}
                 className="flex items-center gap-2 rounded-xl px-4 py-3 transition-all hover:opacity-90"
                 style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16), rgba(72,168,66,0.26))', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 600 }}
               >
