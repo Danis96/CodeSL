@@ -11,6 +11,13 @@ export interface GitHubConnection {
   accountType: string;
   status: 'connected' | 'pending';
   installedAt: string;
+  installations: Array<{
+    installationId: number;
+    accountLogin: string;
+    accountType: string;
+    status: 'connected' | 'pending';
+    installedAt: string;
+  }>;
 }
 
 export interface GitHubRepositoryMetadata {

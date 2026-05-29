@@ -191,15 +191,56 @@ export async function getInstallationToken(installationId: number) {
   return response.token;
 }
 
+type GitHubInstallationConnection = {
+  installationId: number;
+  accountLogin: string;
+  accountType: string;
+  status: 'connected' | 'pending';
+  installedAt: string;
+};
+
 export async function requireGitHubConnection(uid: string) {
   const memberSnapshot = await db.collection('members').doc(uid).get();
-  const github = memberSnapshot.data()?.github;
+  const github = memberSnapshot.data()?.github as Record<string, unknown> | undefined;
 
-  if (!github?.installationId) {
+  if (!github) {
     throw new Error('GitHub not connected');
   }
 
-  return github as { installationId: number; accountLogin: string; accountType: string };
+  const installations = Array.isArray(github.installations)
+    ? github.installations
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+      .map((item) => ({
+        installationId: typeof item.installationId === 'number' ? item.installationId : 0,
+        accountLogin: typeof item.accountLogin === 'string' ? item.accountLogin : '',
+        accountType: typeof item.accountType === 'string' ? item.accountType : '',
+        status: item.status === 'pending' ? 'pending' : 'connected',
+        installedAt: typeof item.installedAt === 'string' ? item.installedAt : '',
+      }))
+      .filter((item) => item.installationId > 0)
+    : [];
+
+  if (installations.length === 0 && typeof github.installationId === 'number') {
+    installations.push({
+      installationId: github.installationId,
+      accountLogin: typeof github.accountLogin === 'string' ? github.accountLogin : '',
+      accountType: typeof github.accountType === 'string' ? github.accountType : '',
+      status: github.status === 'pending' ? 'pending' : 'connected',
+      installedAt: typeof github.installedAt === 'string' ? github.installedAt : '',
+    });
+  }
+
+  if (installations.length === 0) {
+    throw new Error('GitHub not connected');
+  }
+
+  const primaryInstallation = installations[installations.length - 1];
+  return {
+    installationId: primaryInstallation.installationId,
+    accountLogin: primaryInstallation.accountLogin,
+    accountType: primaryInstallation.accountType,
+    installations,
+  };
 }
 
 function normalizePriority(labels: Array<{ name: string }>) {

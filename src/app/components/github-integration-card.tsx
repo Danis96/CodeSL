@@ -32,6 +32,7 @@ export default function GitHubIntegrationCard() {
     [projects],
   );
   const repositoryPageCount = Math.max(1, Math.ceil(repositories.length / REPOSITORIES_PER_PAGE));
+  const connectedInstallations = currentUser?.github?.installations ?? [];
   const paginatedRepositories = useMemo(() => {
     const startIndex = (repositoryPage - 1) * REPOSITORIES_PER_PAGE;
     return repositories.slice(startIndex, startIndex + REPOSITORIES_PER_PAGE);
@@ -67,7 +68,7 @@ export default function GitHubIntegrationCard() {
 
   useEffect(() => {
     void loadRepositories();
-  }, [currentUser?.github?.installationId]);
+  }, [currentUser?.github?.installationId, connectedInstallations.length]);
 
   useEffect(() => {
     setRepositoryPage((currentPage) => Math.min(currentPage, repositoryPageCount));
@@ -106,8 +107,13 @@ export default function GitHubIntegrationCard() {
 
     try {
       const target = repoTargets[repositoryId];
+      const repository = repositories.find((item) => item.id === repositoryId);
+      if (!repository) {
+        throw new Error('Repository not found');
+      }
       await importGitHubRepository({
         repositoryId,
+        installationId: repository.installationId,
         projectId: target && target !== NEW_PROJECT ? target : undefined,
       });
       toast.success('Repository imported. Issues syncing now.');
@@ -170,22 +176,20 @@ export default function GitHubIntegrationCard() {
             <div style={{ color: '#ebffe5', fontSize: '14px', fontWeight: 700 }}>GitHub App</div>
             <div className="matrix-muted" style={{ fontSize: '12px', marginTop: '4px' }}>
               {currentUser?.github
-                ? `${currentUser.github.accountLogin} · installation #${currentUser.github.installationId}`
+                ? `${connectedInstallations.length} installation${connectedInstallations.length === 1 ? '' : 's'} connected`
                 : 'Backend keeps app keys, tokens, webhook secret.'}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {!currentUser?.github && (
-              <button
-                onClick={() => void handleConnect()}
-                disabled={connecting}
-                className="flex items-center gap-2 rounded-xl px-4 py-3 transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16), rgba(72,168,66,0.26))', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 600 }}
-              >
-                <Link2 size={13} />
-                {connecting ? 'Opening GitHub...' : 'Install GitHub App'}
-              </button>
-            )}
+            <button
+              onClick={() => void handleConnect()}
+              disabled={connecting}
+              className="flex items-center gap-2 rounded-xl px-4 py-3 transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16), rgba(72,168,66,0.26))', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 600 }}
+            >
+              <Link2 size={13} />
+              {connecting ? 'Opening GitHub...' : currentUser?.github ? 'Add Installation' : 'Install GitHub App'}
+            </button>
             {currentUser?.github && (
               <button
                 onClick={() => void handleDisconnect()}
@@ -201,7 +205,7 @@ export default function GitHubIntegrationCard() {
         </div>
         <div className="flex items-center gap-2 mt-4" style={{ color: '#5e7f58', fontSize: '11px' }}>
           <Shield size={12} />
-          Setup URL should point back to this app so `installation_id` returns here.
+          Setup URL should point back here so each GitHub installation can be attached and merged into one repo list.
         </div>
       </div>
 
@@ -231,18 +235,18 @@ export default function GitHubIntegrationCard() {
                 <div key={repository.id} className="rounded-2xl p-3.5" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <div className="flex items-center gap-2">
-                        <div style={{ color: '#ebffe5', fontSize: '12px', fontWeight: 700 }}>{repository.fullName}</div>
-                        {repository.alreadyImportedProjectId && (
+                    <div className="flex items-center gap-2">
+                      <div style={{ color: '#ebffe5', fontSize: '12px', fontWeight: 700 }}>{repository.fullName}</div>
+                      {repository.alreadyImportedProjectId && (
                           <span className="rounded-full px-2 py-0.5" style={{ background: 'rgba(116,255,125,0.14)', color: '#74ff7d', fontSize: '10px', fontWeight: 700 }}>
                             IMPORTED
                           </span>
                         )}
-                      </div>
-                      <div className="matrix-muted" style={{ fontSize: '11px', marginTop: '5px' }}>
-                        {repository.visibility} · {repository.defaultBranch} · {repository.openIssuesCount} open issues
-                      </div>
                     </div>
+                    <div className="matrix-muted" style={{ fontSize: '11px', marginTop: '5px' }}>
+                      {repository.installationAccountLogin} · {repository.visibility} · {repository.defaultBranch} · {repository.openIssuesCount} open issues
+                    </div>
+                  </div>
                     <button
                       onClick={() => void handleImport(repository.id)}
                       disabled={importingRepoId === repository.id}

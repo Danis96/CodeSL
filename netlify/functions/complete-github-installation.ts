@@ -10,14 +10,33 @@ export default async (request: Request, context: Parameters<typeof requireAuth>[
   }
 
   const installation = await githubRequest<Record<string, any>>(`/app/installations/${installationId}`);
+  const memberRef = db.collection('members').doc(uid);
+  const memberSnapshot = await memberRef.get();
+  const existingGitHub = memberSnapshot.data()?.github as Record<string, unknown> | undefined;
+  const existingInstallations = Array.isArray(existingGitHub?.installations)
+    ? existingGitHub.installations.filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+    : [];
+  const installedAt = new Date().toISOString();
+  const nextInstallation = {
+    installationId,
+    accountLogin: installation.account?.login || '',
+    accountType: installation.account?.type || '',
+    status: 'connected',
+    installedAt,
+  };
+  const dedupedInstallations = existingInstallations
+    .filter((item) => item.installationId !== installationId);
+  dedupedInstallations.push(nextInstallation);
 
-  await db.collection('members').doc(uid).set({
+  await memberRef.set({
     github: {
-      installationId,
-      accountLogin: installation.account?.login || '',
-      accountType: installation.account?.type || '',
+      ...existingGitHub,
+      installationId: nextInstallation.installationId,
+      accountLogin: nextInstallation.accountLogin,
+      accountType: nextInstallation.accountType,
       status: 'connected',
-      installedAt: FieldValue.serverTimestamp(),
+      installedAt,
+      installations: dedupedInstallations,
     },
     updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });

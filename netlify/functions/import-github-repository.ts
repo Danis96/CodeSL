@@ -13,16 +13,23 @@ import {
 import { db } from './_shared/github';
 
 export default async (request: Request, context: Parameters<typeof requireAuth>[1]) => requireAuth(request, context, async (_request, _context, uid) => {
-  const { repositoryId, projectId } = await request.json() as { repositoryId?: number; projectId?: string };
+  const { repositoryId, projectId, installationId } = await request.json() as { repositoryId?: number; projectId?: string; installationId?: number };
 
   if (!repositoryId) {
     return json({ error: 'repositoryId required' }, 400);
   }
 
   const github = await requireGitHubConnection(uid);
-  const token = await getInstallationToken(github.installationId);
+  const resolvedInstallationId = installationId || github.installationId;
+  const hasInstallation = github.installations.some((installation) => installation.installationId === resolvedInstallationId);
+
+  if (!hasInstallation) {
+    return json({ error: 'installationId is not connected for this user' }, 400);
+  }
+
+  const token = await getInstallationToken(resolvedInstallationId);
   const repository = await githubRequest<Record<string, any>>(`/repositories/${repositoryId}`, { token });
-  const repoMetadata = buildRepoMetadata(github.installationId, repository);
+  const repoMetadata = buildRepoMetadata(resolvedInstallationId, repository);
 
   let projectRef;
   let created = false;

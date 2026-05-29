@@ -148,6 +148,8 @@ const CONTRIBUTION_COOLDOWN_MS = 60 * 60 * 1000;
 
 export interface GitHubRepositoryOption {
   id: number;
+  installationId: number;
+  installationAccountLogin: string;
   name: string;
   fullName: string;
   owner: string;
@@ -160,6 +162,7 @@ export interface GitHubRepositoryOption {
 
 interface ImportGitHubRepositoryInput {
   repositoryId: number;
+  installationId: number;
   projectId?: string;
 }
 
@@ -294,12 +297,34 @@ function mapGitHubConnection(value: unknown): GitHubConnection | undefined {
     return undefined;
   }
 
+  const installations = Array.isArray(data.installations)
+    ? data.installations
+      .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+      .map((item) => ({
+        installationId: typeof item.installationId === 'number' ? item.installationId : 0,
+        accountLogin: typeof item.accountLogin === 'string' ? item.accountLogin : '',
+        accountType: typeof item.accountType === 'string' ? item.accountType : '',
+        status: item.status === 'pending' ? 'pending' : 'connected',
+        installedAt: toDateString(item.installedAt),
+      }))
+      .filter((item) => item.installationId > 0)
+    : [];
+
   return {
     installationId: data.installationId,
     accountLogin: typeof data.accountLogin === 'string' ? data.accountLogin : '',
     accountType: typeof data.accountType === 'string' ? data.accountType : '',
     status: data.status === 'pending' ? 'pending' : 'connected',
     installedAt: toDateString(data.installedAt),
+    installations: installations.length > 0
+      ? installations
+      : [{
+        installationId: data.installationId,
+        accountLogin: typeof data.accountLogin === 'string' ? data.accountLogin : '',
+        accountType: typeof data.accountType === 'string' ? data.accountType : '',
+        status: data.status === 'pending' ? 'pending' : 'connected',
+        installedAt: toDateString(data.installedAt),
+      }],
   };
 }
 
