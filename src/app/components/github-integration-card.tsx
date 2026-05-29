@@ -320,14 +320,14 @@ export default function GitHubIntegrationCard() {
 
           <div>
             <div className="matrix-title mb-3" style={{ color: '#ebffe5', fontSize: '12px', fontWeight: 700 }}>Imported Projects</div>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {connectedProjects.length === 0 && (
-                <div className="rounded-2xl p-4 matrix-muted" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)', fontSize: '12px' }}>
+                <div className="md:col-span-2 rounded-2xl p-4 matrix-muted" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)', fontSize: '12px' }}>
                   No Slave projects linked to GitHub yet.
                 </div>
               )}
               {connectedProjects.map((project) => (
-                <div key={project.id} className="rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
+                <div key={project.id} className="rounded-2xl p-4 flex h-full flex-col justify-between gap-4" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
                   <div>
                     <div className="flex items-center gap-2">
                       <div style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700 }}>{project.title}</div>
@@ -337,15 +337,17 @@ export default function GitHubIntegrationCard() {
                       {project.github?.fullName} · last sync {project.github?.syncedAt ? new Date(project.github.syncedAt).toLocaleString() : 'never'}
                     </div>
                   </div>
-                  <button
-                    onClick={() => void handleSync(project.id)}
-                    disabled={syncingProjectId === project.id}
-                    className="flex items-center gap-2 rounded-xl px-3 py-2 transition-all hover:opacity-90"
-                    style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', color: '#8cff5a', fontSize: '12px', fontWeight: 700 }}
-                  >
-                    <RefreshCw size={12} className={syncingProjectId === project.id ? 'animate-spin' : ''} />
-                    {syncingProjectId === project.id ? 'Syncing...' : 'Sync Issues'}
-                  </button>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => void handleSync(project.id)}
+                      disabled={syncingProjectId === project.id}
+                      className="flex items-center gap-2 rounded-xl px-3 py-2 transition-all hover:opacity-90"
+                      style={{ background: 'rgba(121,255,102,0.08)', border: '1px solid rgba(121,255,102,0.12)', color: '#8cff5a', fontSize: '12px', fontWeight: 700 }}
+                    >
+                      <RefreshCw size={12} className={syncingProjectId === project.id ? 'animate-spin' : ''} />
+                      {syncingProjectId === project.id ? 'Syncing...' : 'Sync Issues'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

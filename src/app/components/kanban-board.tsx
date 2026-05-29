@@ -231,7 +231,12 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
             .filter((item) => item.status === status)
             .sort((left, right) => left.order - right.order)
             .map((item) => item.id);
-          await reorderTasks(project.id, status, orderedIds);
+          await reorderTasks(
+            project.id,
+            status,
+            orderedIds,
+            status === toStatus ? { movedTaskId: taskId, fromStatus } : undefined,
+          );
         }),
       );
     } catch (error) {

@@ -51,10 +51,13 @@ export default function Dashboard({ onProjectClick, onNavigate }: DashboardProps
   const filteredActivities = useMemo(() => (
     query
       ? activities.filter((activity) => {
+        if (activity.visibility === 'system') {
+          return false;
+        }
         const member = members.find((item) => item.id === activity.userId);
         return `${activity.target} ${activity.action} ${member?.name || ''}`.toLowerCase().includes(query);
       })
-      : activities
+      : activities.filter((activity) => activity.visibility !== 'system')
   ), [activities, members, query]);
 
   const searchProjects = filteredProjects.slice(0, 3);

@@ -123,7 +123,7 @@ export default function LoginPage() {
             <Terminal size={24} style={{ color: '#8cff5a' }} />
           </div>
           <h1 className="matrix-title" style={{ color: '#8cff5a', fontSize: '28px', fontWeight: 800, letterSpacing: '0.1em' }}>
-            CodeSL
+            SlaveCode
           </h1>
           <p className="matrix-muted" style={{ fontSize: '14px', marginTop: '4px' }}>
             {mode === 'login' ? 'Sign in to your workspace' : mode === 'signup' ? 'Create your account' : 'Reset your password'}

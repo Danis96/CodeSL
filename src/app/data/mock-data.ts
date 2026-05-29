@@ -139,6 +139,10 @@ export interface Activity {
   taskId?: string;
   epicId?: string;
   source?: ActivitySource;
+  fromStatus?: TaskStatus;
+  toStatus?: TaskStatus;
+  qualifiesContribution?: boolean;
+  visibility?: 'feed' | 'system';
 }
 
 const palette = ['#FF4D3D', '#7C5CFF', '#4DA3FF', '#37D67A', '#F8C14A', '#FF5DA0', '#06D6A0', '#FF6A3D'];
@@ -209,12 +213,30 @@ export function sortByDateDesc<T extends Record<string, unknown>>(items: T[], ke
   });
 }
 
-export function buildChartData(tasks: Task[], projects: Project[]) {
+const taskStatusRank: Record<TaskStatus, number> = {
+  Backlog: 0,
+  Todo: 1,
+  'In Progress': 2,
+  Test: 3,
+  Done: 4,
+  Released: 5,
+};
+
+export function isForwardTaskStatusChange(fromStatus: TaskStatus, toStatus: TaskStatus) {
+  return taskStatusRank[toStatus] > taskStatusRank[fromStatus];
+}
+
+export function buildChartData(tasks: Task[], projects: Project[], activities: Activity[] = [], userId?: string) {
   const countDone = (task: Task) => task.status === 'Done' || task.status === 'Released';
   const now = new Date();
   const weekdayFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
   const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'short' });
   const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  const addDays = (value: Date, days: number) => {
+    const next = new Date(value);
+    next.setDate(next.getDate() + days);
+    return next;
+  };
   const parseTaskDate = (value: string) => {
     const time = Date.parse(value);
     return Number.isNaN(time) ? null : new Date(time);
@@ -235,6 +257,91 @@ export function buildChartData(tasks: Task[], projects: Project[]) {
       month: monthFormatter.format(date),
     };
   });
+
+  const contributionEvents = activities.filter((activity) => {
+    if (!activity.qualifiesContribution || activity.type !== 'task' || !activity.timestamp) {
+      return false;
+    }
+
+    if (userId && activity.userId !== userId) {
+      return false;
+    }
+
+    const eventTime = Date.parse(activity.timestamp);
+    return !Number.isNaN(eventTime);
+  });
+
+  const contributionCounts = new Map<string, number>();
+  contributionEvents.forEach((activity) => {
+    const key = activity.timestamp.slice(0, 10);
+    contributionCounts.set(key, (contributionCounts.get(key) || 0) + 1);
+  });
+
+  const contributionStart = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 364));
+  contributionStart.setDate(contributionStart.getDate() - contributionStart.getDay());
+  const contributionEnd = addDays(startOfDay(now), 6 - startOfDay(now).getDay());
+
+  const contributionCells = [];
+  for (let cursor = new Date(contributionStart); cursor.getTime() <= contributionEnd.getTime(); cursor = addDays(cursor, 1)) {
+    const day = startOfDay(cursor);
+    const key = day.toISOString().slice(0, 10);
+    const isFuture = day.getTime() > startOfDay(now).getTime();
+    const count = isFuture ? 0 : (contributionCounts.get(key) || 0);
+    const level = count === 0 ? 0 : count === 1 ? 1 : count <= 2 ? 2 : count <= 4 ? 3 : 4;
+
+    contributionCells.push({
+      key,
+      count,
+      level,
+      isFuture,
+      weekday: day.getDay(),
+      month: monthFormatter.format(day),
+      label: day.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+    });
+  }
+
+  const contributionWeeks = Array.from({ length: Math.ceil(contributionCells.length / 7) }, (_, index) => {
+    const days = contributionCells.slice(index * 7, index * 7 + 7);
+    return {
+      days,
+    };
+  });
+
+  const contributionMonthLabels = contributionCells.reduce<{ label: string; weekIndex: number; key: string }[]>((labels, day, index) => {
+    const date = new Date(day.key);
+    const monthKey = day.key.slice(0, 7);
+    const weekIndex = Math.floor(index / 7);
+
+    if (index === 0) {
+      labels.push({ label: day.month, weekIndex, key: monthKey });
+      return labels;
+    }
+
+    if (date.getDate() !== 1 || labels.some((item) => item.key === monthKey)) {
+      return labels;
+    }
+
+    labels.push({ label: day.month, weekIndex, key: monthKey });
+    return labels;
+  }, []);
+
+  const contributionTotal = contributionEvents.length;
+  const contributionActiveDays = Array.from(contributionCounts.values()).filter((count) => count > 0).length;
+  const contributionBestDay = Math.max(0, ...contributionCounts.values());
+  const contributionThisWeek = Array.from({ length: 7 }, (_, index) => {
+    const day = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - index));
+    return contributionCounts.get(day.toISOString().slice(0, 10)) || 0;
+  }).reduce((sum, count) => sum + count, 0);
+
+  let currentStreak = 0;
+  for (let offset = 0; offset < 365; offset += 1) {
+    const day = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset));
+    const key = day.toISOString().slice(0, 10);
+    if ((contributionCounts.get(key) || 0) === 0) {
+      break;
+    }
+    currentStreak += 1;
+  }
 
   return {
     weeklyTasks: weeklyDays.map(({ key, day }) => ({
@@ -277,5 +384,16 @@ export function buildChartData(tasks: Task[], projects: Project[]) {
       const diff = startOfDay(dueDate).getTime() - startOfDay(now).getTime();
       return diff >= 0 && diff <= 3 * 24 * 60 * 60 * 1000;
     }).length,
+    contributions: {
+      total: contributionTotal,
+      activeDays: contributionActiveDays,
+      bestDay: contributionBestDay,
+      thisWeek: contributionThisWeek,
+      currentStreak,
+      cells: contributionCells,
+      weeks: contributionWeeks,
+      weekCount: contributionWeeks.length,
+      monthLabels: contributionMonthLabels,
+    },
   };
 }

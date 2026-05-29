@@ -58,7 +58,7 @@ export default function Sidebar({ currentPage, onNavigate, collapsed, onToggleCo
         </div>
         {!collapsed && (
           <span className="matrix-title" style={{ color: '#e2ffd8', fontSize: '14px', fontWeight: 700 }}>
-            CodeSL
+            SlaveCode
           </span>
         )}
       </div>

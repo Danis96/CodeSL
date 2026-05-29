@@ -2,9 +2,20 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { TrendingUp, CheckCircle2, Clock, Zap, Target } from 'lucide-react';
+import { TrendingUp, CheckCircle2, Clock, Zap, Flame, Trophy, Target } from 'lucide-react';
 import { buildChartData } from '../data/mock-data';
 import { useWorkspace } from '../data/workspace-context';
+
+const contributionPalette = [
+  'rgba(121,255,102,0.05)',
+  'rgba(70,150,58,0.55)',
+  'rgba(81,183,67,0.72)',
+  'rgba(102,220,83,0.86)',
+  '#8cff5a',
+];
+const contributionCellSize = 12;
+const contributionGap = 3;
+const contributionWeekPitch = contributionCellSize + contributionGap;
 
 const Tip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -17,8 +28,8 @@ const Tip = ({ active, payload, label }: any) => {
 };
 
 export default function StatsPage() {
-  const { tasks, projects } = useWorkspace();
-  const chartData = buildChartData(tasks, projects);
+  const { tasks, projects, activities, currentUser } = useWorkspace();
+  const chartData = buildChartData(tasks, projects, activities, currentUser?.id);
   const completed = tasks.filter((task) => task.status === 'Done' || task.status === 'Released').length;
   const total = tasks.length;
   const completionRate = total ? Math.round((completed / total) * 100) : 0;
@@ -28,17 +39,171 @@ export default function StatsPage() {
     : '0h';
   const weeklyVelocity = chartData.weeklyTasks.reduce((sum, day) => sum + day.completed, 0);
   const totalWorkload = chartData.tasksByProject.reduce((sum, item) => sum + item.count, 0);
+  const contributionStats = chartData.contributions;
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-4 px-6 py-4 shrink-0" style={{ background: 'rgba(5,8,5,0.88)', borderBottom: '1px solid rgba(121,255,102,0.12)', backdropFilter: 'blur(12px)' }}>
         <div>
           <h1 className="matrix-title" style={{ color: '#8cff5a', fontSize: '18px', fontWeight: 800, letterSpacing: '0.08em' }}>ANALYTICS</h1>
-          <p className="matrix-muted" style={{ fontSize: '12px' }}>Live Firestore snapshot · last 7 days + last 6 months</p>
+          <p className="matrix-muted" style={{ fontSize: '12px' }}>Counted move grid + task trends</p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-20 md:pb-6">
+        <div className="matrix-panel rounded-2xl overflow-hidden">
+          <div className="p-5 pb-4">
+            <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
+              <div>
+                <h3 className="matrix-title" style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700 }}>
+                  {contributionStats.total.toLocaleString()} counted moves in the last year
+                </h3>
+                <p className="matrix-muted" style={{ fontSize: '12px', marginTop: '4px' }}>
+                  {currentUser?.name || 'Workspace'} heatmap. Past 365 days, one square per day.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full px-3 py-1.5" style={{ background: 'rgba(121,255,102,0.06)', border: '1px solid rgba(121,255,102,0.12)' }}>
+                <Target size={12} style={{ color: '#8cff5a' }} />
+                <span style={{ color: '#dfffd8', fontSize: '11px', fontWeight: 700 }}>
+                  1 task = 1 score / 60 min
+                </span>
+              </div>
+            </div>
+
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: 'linear-gradient(180deg, rgba(7,15,7,0.95) 0%, rgba(5,12,5,0.92) 100%)', border: '1px solid rgba(121,255,102,0.1)' }}
+            >
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <div className="matrix-muted" style={{ fontSize: '11px' }}>
+                  Scroll sideways to inspect the whole year.
+                </div>
+                <div className="matrix-muted" style={{ fontSize: '11px' }}>
+                  Sun to Sat columns grouped by week
+                </div>
+              </div>
+
+              <div className="overflow-x-auto pb-2">
+                <div style={{ minWidth: `${contributionStats.weekCount * contributionWeekPitch + 116}px` }}>
+                  <div className="flex gap-4">
+                    <div className="shrink-0" style={{ width: '44px' }}>
+                      <div style={{ height: '22px' }} />
+                      <div className="grid" style={{ gridTemplateRows: `repeat(7, ${contributionCellSize}px)`, rowGap: `${contributionGap}px` }}>
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, index) => (
+                          <div
+                            key={label}
+                            className="flex items-center justify-end"
+                            style={{ color: index % 2 === 1 ? '#9ac293' : '#567254', fontSize: '11px', lineHeight: 1 }}
+                          >
+                            {index % 2 === 1 ? label : ''}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0">
+                      <div className="relative mb-3" style={{ width: `${contributionStats.weekCount * contributionWeekPitch}px`, height: '19px' }}>
+                        {contributionStats.monthLabels.map((month) => (
+                          <div
+                            key={month.key}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: `${month.weekIndex * contributionWeekPitch}px`,
+                              color: '#b4d7ad',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              lineHeight: 1,
+                              letterSpacing: '0.03em',
+                              whiteSpace: 'nowrap',
+                              textShadow: '0 0 12px rgba(140,255,90,0.08)',
+                            }}
+                          >
+                            {month.label}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div
+                        className="grid"
+                        style={{
+                          gridTemplateRows: `repeat(7, ${contributionCellSize}px)`,
+                          gridAutoFlow: 'column',
+                          gridAutoColumns: `${contributionCellSize}px`,
+                          rowGap: `${contributionGap}px`,
+                          columnGap: `${contributionGap}px`,
+                        }}
+                      >
+                        {contributionStats.cells.map((day) => (
+                          <div
+                            key={day.key}
+                            title={`${day.label}: ${day.count} counted move${day.count === 1 ? '' : 's'}`}
+                            className="rounded-[4px] transition-transform hover:scale-110"
+                            style={{
+                              width: `${contributionCellSize}px`,
+                              height: `${contributionCellSize}px`,
+                              background: day.isFuture ? 'rgba(121,255,102,0.02)' : contributionPalette[day.level],
+                              border: '1px solid rgba(121,255,102,0.1)',
+                              boxShadow: day.level >= 3 ? '0 0 10px rgba(140,255,90,0.18)' : 'none',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr]" style={{ borderTop: '1px solid rgba(121,255,102,0.1)' }}>
+            <div className="p-5">
+              <div className="matrix-title" style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700, marginBottom: '10px' }}>Counting Rules</div>
+              <div className="space-y-3">
+                {[
+                  'Same-column reorder does not count.',
+                  'Backward status move does not count.',
+                  'Same task can score once every rolling 60 minutes.',
+                  'Heatmap intensity reflects counted moves per day.',
+                ].map((rule) => (
+                  <div key={rule} className="flex items-center gap-3">
+                    <div className="rounded-full" style={{ width: '7px', height: '7px', background: '#8cff5a' }} />
+                    <span className="matrix-copy" style={{ fontSize: '12px', color: '#d7f7d0' }}>{rule}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-5" style={{ borderLeft: '1px solid rgba(121,255,102,0.1)' }}>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Current Streak', value: contributionStats.currentStreak, icon: Flame, color: '#8cff5a' },
+                  { label: 'This Week', value: contributionStats.thisWeek, icon: Zap, color: '#62ffbf' },
+                  { label: 'Best Day', value: contributionStats.bestDay, icon: Trophy, color: '#c5ff62' },
+                  { label: 'Active Days', value: contributionStats.activeDays, icon: CheckCircle2, color: '#74ff7d' },
+                ].map(({ label, value, icon: Icon, color }) => (
+                  <div key={label} className="rounded-2xl p-4" style={{ background: 'rgba(8,18,8,0.7)', border: '1px solid rgba(121,255,102,0.1)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <Icon size={14} style={{ color }} />
+                      <TrendingUp size={11} style={{ color: '#6f8f68' }} />
+                    </div>
+                    <div className="matrix-title" style={{ color: '#ebffe5', fontSize: '20px', fontWeight: 800 }}>{value}</div>
+                    <div className="matrix-muted" style={{ fontSize: '11px', marginTop: '2px' }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 mt-4">
+                <span className="matrix-muted" style={{ fontSize: '11px' }}>Less</span>
+                {contributionPalette.map((color, index) => (
+                  <div key={index} className="rounded-[3px]" style={{ width: '11px', height: '11px', background: color, border: '1px solid rgba(121,255,102,0.08)' }} />
+                ))}
+                <span className="matrix-muted" style={{ fontSize: '11px' }}>More</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Tasks Completed', value: completed, sub: `${chartData.weeklyTasks.at(-1)?.completed || 0} closed today`, icon: CheckCircle2, color: '#74ff7d' },

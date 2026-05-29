@@ -66,7 +66,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 pb-20 md:pb-6">
-        <div className="max-w-2xl space-y-5">
+        <div className="mx-auto w-full max-w-3xl space-y-5">
           <div className="matrix-panel rounded-2xl p-6">
             <h2 className="matrix-title" style={{ color: '#ebffe5', fontSize: '13px', fontWeight: 700, marginBottom: '20px' }}>Profile</h2>
             <div className="flex items-start gap-5 mb-5">

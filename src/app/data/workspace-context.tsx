@@ -42,7 +42,12 @@ import type {
   TaskStatus,
   TaskType,
 } from './mock-data';
-import { buildMemberProfile, sortByDateDesc, toDateString } from './mock-data';
+import {
+  buildMemberProfile,
+  isForwardTaskStatusChange,
+  sortByDateDesc,
+  toDateString,
+} from './mock-data';
 
 interface CreateProjectInput {
   title: string;
@@ -123,7 +128,12 @@ interface WorkspaceContextValue {
   createTask: (input: CreateTaskInput) => Promise<void>;
   updateTask: (taskId: string, input: UpdateTaskInput) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
-  reorderTasks: (projectId: string, status: TaskStatus, orderedTaskIds: string[]) => Promise<void>;
+  reorderTasks: (
+    projectId: string,
+    status: TaskStatus,
+    orderedTaskIds: string[],
+    moveMeta?: { movedTaskId: string; fromStatus: TaskStatus }
+  ) => Promise<void>;
   inviteProjectMember: (projectId: string, email: string) => Promise<'invited' | 'already-member' | 'member-not-found'>;
   getGitHubInstallUrl: () => Promise<string>;
   completeGitHubInstallation: (installationId: number) => Promise<void>;
@@ -134,6 +144,7 @@ interface WorkspaceContextValue {
 }
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+const CONTRIBUTION_COOLDOWN_MS = 60 * 60 * 1000;
 
 export interface GitHubRepositoryOption {
   id: number;
@@ -265,6 +276,10 @@ function mapActivity(id: string, data: Record<string, unknown>): Activity {
     taskId: typeof data.taskId === 'string' ? data.taskId : undefined,
     epicId: typeof data.epicId === 'string' ? data.epicId : undefined,
     source: typeof data.source === 'string' ? (data.source as Activity['source']) : 'manual',
+    fromStatus: typeof data.fromStatus === 'string' ? (data.fromStatus as TaskStatus) : undefined,
+    toStatus: typeof data.toStatus === 'string' ? (data.toStatus as TaskStatus) : undefined,
+    qualifiesContribution: Boolean(data.qualifiesContribution),
+    visibility: data.visibility === 'system' ? 'system' : 'feed',
   };
 }
 
@@ -485,6 +500,41 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       };
     });
   }, [epics, tasks]);
+
+  const recordTaskContributionMove = async (task: Task, fromStatus: TaskStatus, toStatus: TaskStatus) => {
+    if (!authUser || !isForwardTaskStatusChange(fromStatus, toStatus)) {
+      return;
+    }
+
+    const latestCountedMove = activities.find((activity) => (
+      activity.taskId === task.id
+      && activity.qualifiesContribution
+      && activity.type === 'task'
+      && activity.timestamp
+    ));
+
+    const latestMoveTime = latestCountedMove?.timestamp ? Date.parse(latestCountedMove.timestamp) : Number.NaN;
+    const now = Date.now();
+
+    if (!Number.isNaN(latestMoveTime) && now - latestMoveTime < CONTRIBUTION_COOLDOWN_MS) {
+      return;
+    }
+
+    await addDoc(collection(db, 'activities'), {
+      userId: authUser.uid,
+      action: 'counted move',
+      target: task.title,
+      type: 'task',
+      timestamp: serverTimestamp(),
+      projectId: task.projectId,
+      taskId: task.id,
+      source: 'manual',
+      fromStatus,
+      toStatus,
+      qualifiesContribution: true,
+      visibility: 'system',
+    });
+  };
 
   const value = useMemo<WorkspaceContextValue>(
     () => ({
@@ -719,10 +769,15 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         });
       },
       async updateTask(taskId, input) {
+        const task = tasks.find((item) => item.id === taskId);
         await updateDoc(doc(db, 'tasks', taskId), {
           ...input,
           updatedAt: serverTimestamp(),
         });
+
+        if (task && input.status && input.status !== task.status) {
+          await recordTaskContributionMove(task, task.status, input.status);
+        }
       },
       async deleteTask(taskId) {
         const task = tasks.find((item) => item.id === taskId);
@@ -740,7 +795,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           });
         }
       },
-      async reorderTasks(projectId, status, orderedTaskIds) {
+      async reorderTasks(projectId, status, orderedTaskIds, moveMeta) {
         const batch = writeBatch(db);
 
         orderedTaskIds.forEach((taskId, index) => {
@@ -753,6 +808,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         });
 
         await batch.commit();
+
+        if (moveMeta) {
+          const movedTask = tasks.find((item) => item.id === moveMeta.movedTaskId);
+          if (movedTask) {
+            await recordTaskContributionMove(movedTask, moveMeta.fromStatus, status);
+          }
+        }
       },
       async inviteProjectMember(projectId, email) {
         const normalizedEmail = email.trim().toLowerCase();
@@ -822,7 +884,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         });
       },
     }),
-    [activities, authLoading, authUser, currentUser, epics, hydratedEpics, hydratedProjects, loading, members, projects, tasks],
+    [
+      activities,
+      authLoading,
+      authUser,
+      currentUser,
+      epics,
+      hydratedEpics,
+      hydratedProjects,
+      loading,
+      members,
+      projects,
+      recordTaskContributionMove,
+      tasks,
+    ],
   );
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
