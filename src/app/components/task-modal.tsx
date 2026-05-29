@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { X, MessageSquare, Paperclip, Clock, Calendar, User, Layers, Hash, Send, ChevronDown, Github, GitPullRequest, GitCommit, ExternalLink } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { X, Paperclip, Clock, Calendar, User, Layers, Hash, Send, ChevronDown, Github, GitPullRequest, GitCommit, ExternalLink, Trash2 } from 'lucide-react';
 import type { Task, Priority, TaskStatus, TaskType } from '../data/mock-data';
 import { useWorkspace } from '../data/workspace-context';
+import { toast } from 'sonner';
 
 interface TaskModalProps {
   task: Task;
@@ -33,22 +34,83 @@ const tColors: Record<TaskType, { bg: string; text: string }> = {
 
 export default function TaskModal({ task, onClose }: TaskModalProps) {
   const {
-    members, epics, tasks, updateTask, deleteTask,
+    members, epics, tasks, taskComments, updateTask, deleteTask, addTaskComment, deleteTaskComment,
   } = useWorkspace();
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [priority, setPriority] = useState<Priority>(task.priority);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [estimation, setEstimation] = useState(String(task.estimation));
+  const [dueDate, setDueDate] = useState(toDateInputValue(task.dueDate));
   const [selectedEpicId, setSelectedEpicId] = useState(task.epicId || '');
+  const [tags, setTags] = useState(task.tags);
+  const [tagDraft, setTagDraft] = useState('');
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [commenting, setCommenting] = useState(false);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   const assignee = members.find((m) => m.id === task.assigneeId);
   const projectEpics = epics.filter((e) => e.projectId === task.projectId);
   const selectedEpic = projectEpics.find((e) => e.id === selectedEpicId);
   const tc = tColors[task.type];
+  const comments = useMemo(
+    () => taskComments
+      .filter((item) => item.taskId === task.id)
+      .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt)),
+    [task.id, taskComments],
+  );
+
+  const addTag = () => {
+    const nextTag = tagDraft.trim();
+    if (!nextTag) {
+      return;
+    }
+
+    const normalized = nextTag.toLowerCase();
+    if (tags.some((tag) => tag.toLowerCase() === normalized)) {
+      setTagDraft('');
+      return;
+    }
+
+    setTags((current) => [...current, nextTag]);
+    setTagDraft('');
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags((current) => current.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleCommentSubmit = async () => {
+    const message = comment.trim();
+    if (!message) {
+      return;
+    }
+
+    setCommenting(true);
+    try {
+      await addTaskComment(task.id, message);
+      setComment('');
+    } catch (error) {
+      console.error(error);
+      toast.error('Comment save failed.');
+    } finally {
+      setCommenting(false);
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    setDeletingCommentId(commentId);
+    try {
+      await deleteTaskComment(commentId);
+    } catch (error) {
+      console.error(error);
+      toast.error('Comment delete failed.');
+    } finally {
+      setDeletingCommentId(null);
+    }
+  };
 
   return (
     <div
@@ -124,7 +186,13 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                 )}
               </Detail>
               <Detail icon={<Calendar size={12} />} label="Due Date">
-                <span style={{ color: '#ebffe5', fontSize: '13px' }}>{task.dueDate}</span>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full bg-transparent outline-none"
+                  style={{ color: '#ebffe5', fontSize: '13px', colorScheme: 'dark' }}
+                />
               </Detail>
               <Detail icon={<Clock size={12} />} label="Estimation">
                 <input
@@ -149,10 +217,39 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                 </select>
               </Detail>
               <Detail icon={<Hash size={12} />} label="Tags">
-                <div className="flex flex-wrap gap-1">
-                  {task.tags.map((tag) => (
-                    <span key={tag} className="rounded-md px-2 py-0.5" style={{ background: 'rgba(121,255,102,0.08)', color: '#89bd80', fontSize: '10px' }}>{tag}</span>
-                  ))}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => removeTag(tag)}
+                        className="rounded-md px-2 py-0.5 transition-opacity hover:opacity-75"
+                        style={{ background: 'rgba(121,255,102,0.08)', color: '#89bd80', fontSize: '10px' }}
+                        title="Remove tag"
+                      >
+                        {tag} ×
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={tagDraft}
+                      onChange={(e) => setTagDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      placeholder="Create tag"
+                      className="w-full bg-transparent outline-none"
+                      style={{ color: '#ebffe5', fontSize: '13px' }}
+                    />
+                    <button type="button" onClick={addTag} className="rounded-lg px-2 py-1 transition-opacity hover:opacity-80" style={{ background: 'rgba(121,255,102,0.08)', color: '#8cff5a', fontSize: '11px', fontWeight: 600 }}>
+                      Add
+                    </button>
+                  </div>
                 </div>
               </Detail>
             </div>
@@ -239,16 +336,60 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
           </div>
 
           <div className="p-5 space-y-4">
-            <div className="matrix-muted" style={{ fontSize: '12px' }}>
-              Comments not connected yet. Task edits below save to Firestore.
-            </div>
+            {comments.length === 0 ? (
+              <div className="matrix-muted" style={{ fontSize: '12px' }}>
+                No comments yet.
+              </div>
+            ) : (
+              comments.map((item) => {
+                const author = members.find((member) => member.id === item.authorId);
+                return (
+                  <div key={item.id} className="rounded-2xl p-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex items-center justify-center rounded-full text-white" style={{ width: '20px', height: '20px', background: author?.color || '#3f5a3f', fontSize: '8px', fontWeight: 700 }}>
+                          {author?.initials || 'U'}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ color: '#ebffe5', fontSize: '12px', fontWeight: 600 }}>{author?.name || 'Unknown user'}</div>
+                          <div className="matrix-muted" style={{ fontSize: '10px' }}>{formatCommentDate(item.createdAt)}</div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleCommentDelete(item.id)}
+                        disabled={deletingCommentId === item.id}
+                        className="rounded-lg p-1 transition-opacity hover:opacity-75 disabled:opacity-40"
+                        style={{ color: '#89bd80', background: 'rgba(121,255,102,0.06)' }}
+                        title="Delete comment"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    <div style={{ color: '#c7eac1', fontSize: '12px', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{item.body}</div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Comment input */}
           <div className="px-5 pb-4">
             <div className="flex items-center gap-2 rounded-xl px-3 py-2.5 mb-4" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)' }}>
-              <input placeholder="Add a comment..." value={comment} onChange={(e) => setComment(e.target.value)} className="flex-1 bg-transparent outline-none" style={{ color: '#ebffe5', fontSize: '13px' }} />
-              <button className="hover:opacity-70 transition-opacity" style={{ color: '#8cff5a' }}><Send size={13} /></button>
+              <input
+                placeholder="Add a comment..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleCommentSubmit();
+                  }
+                }}
+                className="flex-1 bg-transparent outline-none"
+                style={{ color: '#ebffe5', fontSize: '13px' }}
+              />
+              <button type="button" onClick={() => void handleCommentSubmit()} disabled={commenting} className="hover:opacity-70 transition-opacity disabled:opacity-40" style={{ color: '#8cff5a' }}><Send size={13} /></button>
             </div>
 
             <button
@@ -281,6 +422,8 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                   status,
                   order: nextOrder,
                   estimation: Number(estimation) || 0,
+                  dueDate,
+                  tags,
                   epicId: selectedEpicId,
                   epicOrder: nextEpicOrder,
                 });
@@ -330,4 +473,26 @@ function Detail({ icon, label, children }: { icon: React.ReactNode; label: strin
       {children}
     </div>
   );
+}
+
+function toDateInputValue(value: string) {
+  if (!value) {
+    return '';
+  }
+
+  return value.includes('T') ? value.slice(0, 10) : value;
+}
+
+function formatCommentDate(value: string) {
+  const time = Date.parse(value);
+  if (Number.isNaN(time)) {
+    return 'Just now';
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(time));
 }

@@ -38,6 +38,7 @@ import type {
   Priority,
   Project,
   ProjectStatus,
+  TaskComment,
   Task,
   TaskStatus,
   TaskType,
@@ -84,6 +85,8 @@ interface UpdateTaskInput {
   estimation?: number;
   epicId?: string;
   epicOrder?: number;
+  dueDate?: string;
+  tags?: string[];
 }
 
 interface CreateTaskInput {
@@ -107,6 +110,7 @@ interface WorkspaceContextValue {
   members: Member[];
   projects: Project[];
   tasks: Task[];
+  taskComments: TaskComment[];
   epics: Epic[];
   activities: Activity[];
   loading: boolean;
@@ -128,6 +132,8 @@ interface WorkspaceContextValue {
   createTask: (input: CreateTaskInput) => Promise<void>;
   updateTask: (taskId: string, input: UpdateTaskInput) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
+  addTaskComment: (taskId: string, body: string) => Promise<void>;
+  deleteTaskComment: (commentId: string) => Promise<void>;
   reorderTasks: (
     projectId: string,
     status: TaskStatus,
@@ -264,6 +270,18 @@ function mapTask(id: string, data: Record<string, unknown>): Task {
     createdAt: toDateString(data.createdAt),
     updatedAt: toDateString(data.updatedAt),
     github: mapTaskGitHub(data.github),
+  };
+}
+
+function mapTaskComment(id: string, data: Record<string, unknown>): TaskComment {
+  return {
+    id,
+    taskId: typeof data.taskId === 'string' ? data.taskId : '',
+    projectId: typeof data.projectId === 'string' ? data.projectId : '',
+    authorId: typeof data.authorId === 'string' ? data.authorId : '',
+    body: typeof data.body === 'string' ? data.body : '',
+    createdAt: toDateString(data.createdAt),
+    updatedAt: toDateString(data.updatedAt),
   };
 }
 
@@ -435,6 +453,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [members, setMembers] = useState<Member[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskComments, setTaskComments] = useState<TaskComment[]>([]);
   const [epics, setEpics] = useState<Epic[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -450,6 +469,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
         setMembers([]);
         setProjects([]);
         setTasks([]);
+        setTaskComments([]);
         setEpics([]);
         setActivities([]);
         setLoading(false);
@@ -479,6 +499,10 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       onSnapshot(collection(db, 'tasks'), (snapshot) => {
         const next = snapshot.docs.map((item) => mapTask(item.id, item.data()));
         setTasks(sortByDateDesc(next, 'updatedAt'));
+      }),
+      onSnapshot(collection(db, 'taskComments'), (snapshot) => {
+        const next = snapshot.docs.map((item) => mapTaskComment(item.id, item.data()));
+        setTaskComments(sortByDateDesc(next, 'createdAt'));
       }),
       onSnapshot(collection(db, 'epics'), (snapshot) => {
         const next = snapshot.docs.map((item) => mapEpic(item.id, item.data()));
@@ -568,6 +592,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       members,
       projects: hydratedProjects,
       tasks,
+      taskComments,
       epics: hydratedEpics,
       activities,
       loading,
@@ -640,11 +665,16 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
 
         const batch = writeBatch(db);
         const projectTasks = tasks.filter((task) => task.projectId === projectId);
+        const projectTaskComments = taskComments.filter((comment) => comment.projectId === projectId);
         const projectEpics = epics.filter((epic) => epic.projectId === projectId);
         const projectActivities = activities.filter((activity) => activity.projectId === projectId);
 
         projectTasks.forEach((task) => {
           batch.delete(doc(db, 'tasks', task.id));
+        });
+
+        projectTaskComments.forEach((comment) => {
+          batch.delete(doc(db, 'taskComments', comment.id));
         });
 
         projectEpics.forEach((epic) => {
@@ -810,12 +840,73 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        await deleteDoc(doc(db, 'tasks', taskId));
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'tasks', taskId));
+
+        taskComments
+          .filter((comment) => comment.taskId === taskId)
+          .forEach((comment) => {
+            batch.delete(doc(db, 'taskComments', comment.id));
+          });
+
+        await batch.commit();
 
         const project = projects.find((item) => item.id === task.projectId);
         if (project) {
           await updateDoc(doc(db, 'projects', task.projectId), {
             taskCount: Math.max(project.taskCount - 1, 0),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      },
+      async addTaskComment(taskId, body) {
+        if (!auth.currentUser) {
+          return;
+        }
+
+        const task = tasks.find((item) => item.id === taskId);
+        const message = body.trim();
+        if (!task || !message) {
+          return;
+        }
+
+        await addDoc(collection(db, 'taskComments'), {
+          taskId,
+          projectId: task.projectId,
+          authorId: auth.currentUser.uid,
+          body: message,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+
+        await updateDoc(doc(db, 'tasks', taskId), {
+          comments: task.comments + 1,
+          updatedAt: serverTimestamp(),
+        });
+
+        await addDoc(collection(db, 'activities'), {
+          userId: auth.currentUser.uid,
+          action: 'commented on task',
+          target: task.title,
+          type: 'comment',
+          timestamp: serverTimestamp(),
+          projectId: task.projectId,
+          taskId,
+          visibility: 'feed',
+        });
+      },
+      async deleteTaskComment(commentId) {
+        const comment = taskComments.find((item) => item.id === commentId);
+        if (!comment) {
+          return;
+        }
+
+        await deleteDoc(doc(db, 'taskComments', commentId));
+
+        const task = tasks.find((item) => item.id === comment.taskId);
+        if (task) {
+          await updateDoc(doc(db, 'tasks', task.id), {
+            comments: Math.max(task.comments - 1, 0),
             updatedAt: serverTimestamp(),
           });
         }
@@ -920,6 +1011,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       loading,
       members,
       projects,
+      taskComments,
       recordTaskContributionMove,
       tasks,
     ],

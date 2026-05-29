@@ -115,6 +115,16 @@ export interface Task {
   github?: GitHubIssueMetadata;
 }
 
+export interface TaskComment {
+  id: string;
+  taskId: string;
+  projectId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Project {
   id: string;
   title: string;
