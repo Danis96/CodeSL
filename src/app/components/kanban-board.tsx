@@ -387,7 +387,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                     {project.priority.toUpperCase()}
                   </span>
                 </div>
-                <h1 className="matrix-title" style={{ color: '#ebffe5', fontSize: '24px', fontWeight: 800, letterSpacing: '0.05em', textShadow: '0 2px 12px rgba(0,0,0,0.4)' }}>
+                <h1 className="matrix-title" style={{ color: '#ebffe5', fontSize: '24px', fontWeight: 800, letterSpacing: '0.05em' }}>
                   {project.title}
                 </h1>
                 <p style={{ color: 'rgba(235,255,229,0.76)', fontSize: '13px', marginTop: '4px', maxWidth: '500px' }}>
@@ -403,7 +403,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
                       title={m.name}
                     className="flex items-center justify-center rounded-full text-white"
                     style={{
-                        width: '34px', height: '34px', background: m.color, border: '2px solid rgba(4,16,4,0.5)', fontSize: '11px', fontWeight: 700, boxShadow: `0 0 8px ${m.color}60`,
+                        width: '34px', height: '34px', background: m.color, border: '2px solid rgba(4,16,4,0.5)', fontSize: '11px', fontWeight: 700,
                       }}
                     >
                       {m.initials[0]}
@@ -461,7 +461,7 @@ export default function KanbanBoard({ projectId }: KanbanBoardProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3 shrink-0" style={{ background: 'rgba(5,8,5,0.88)', borderBottom: '1px solid rgba(121,255,102,0.12)', backdropFilter: 'blur(12px)' }}>
+        <div className="flex flex-wrap items-center gap-3 px-5 py-3 shrink-0" style={{ background: 'rgba(5,8,5,0.9)', borderBottom: '1px solid rgba(121,255,102,0.09)' }}>
           <div className="flex items-center gap-2 rounded-xl px-3" style={{ background: '#0b150b', border: '1px solid rgba(121,255,102,0.12)', height: '36px', width: '220px' }}>
             <Search size={13} style={{ color: '#5e7f58' }} />
             <input
@@ -579,7 +579,7 @@ function ToolbarSelect({
         <ChevronDown size={11} />
       </button>
       {open && (
-        <div className="absolute left-0 top-11 z-30 min-w-[180px] overflow-hidden rounded-xl" style={{ background: '#0d180d', border: '1px solid rgba(121,255,102,0.14)', boxShadow: '0 20px 50px rgba(0,0,0,0.45)' }}>
+        <div className="absolute left-0 top-11 z-30 min-w-[180px] overflow-hidden rounded-xl" style={{ background: '#0d180d', border: '1px solid rgba(121,255,102,0.1)', boxShadow: '0 12px 28px rgba(0,0,0,0.28)' }}>
           {options.map((option) => (
             <button
               key={option}
@@ -644,7 +644,7 @@ function KanbanColumn({
         width: '272px',
         background: isOver && canDrop ? '#102010' : '#071007',
         border: `1px solid ${isOver && canDrop ? `${column.color}99` : 'rgba(121,255,102,0.08)'}`,
-        boxShadow: isOver && canDrop ? `0 18px 50px ${column.color}22` : 'none',
+        boxShadow: isOver && canDrop ? '0 14px 28px rgba(0,0,0,0.18)' : 'none',
       }}
     >
       <div className="flex items-center justify-between px-4 py-3 shrink-0" style={{ borderBottom: `1.5px solid ${column.color}50` }}>
@@ -779,7 +779,7 @@ function KanbanTaskCard({
       style={{
         background: '#0a140a',
         border: `1px solid ${isOver ? `${task.accentColor}88` : 'rgba(121,255,102,0.08)'}`,
-        boxShadow: isDragging ? `0 24px 50px ${task.accentColor}33` : isOver ? `0 12px 30px ${task.accentColor}1f` : '0 2px 12px rgba(0,0,0,0.3)',
+        boxShadow: isDragging ? '0 18px 34px rgba(0,0,0,0.22)' : isOver ? '0 12px 24px rgba(0,0,0,0.18)' : '0 8px 20px rgba(0,0,0,0.16)',
         transform: isDragging ? 'rotate(2deg) scale(1.03)' : isOver ? 'translateY(-4px)' : 'translateY(0)',
         opacity: isDragging ? 0.6 : 1,
       }}
@@ -798,7 +798,7 @@ function KanbanTaskCard({
         <div
           className="absolute"
           style={{
-            width: '80px', height: '80px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(235,255,229,0.16) 0%, transparent 70%)', top: '-30px', right: '-20px', pointerEvents: 'none',
+            width: '80px', height: '80px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)', top: '-30px', right: '-20px', pointerEvents: 'none',
           }}
         />
         <div className="flex items-center justify-between">
@@ -912,7 +912,7 @@ function KanbanTaskCard({
               className="flex items-center justify-center rounded-full text-white"
               title={assignee.name}
               style={{
-                width: '22px', height: '22px', background: assignee.color, fontSize: '8px', fontWeight: 700, boxShadow: `0 0 6px ${assignee.color}60`,
+                width: '22px', height: '22px', background: assignee.color, fontSize: '8px', fontWeight: 700,
               }}
             >
               {assignee.initials[0]}
@@ -941,7 +941,7 @@ function CreateTaskModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(10px)' }} onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="w-full max-w-[520px] overflow-hidden rounded-[24px]" style={{ background: '#0a140a', border: '1px solid rgba(121,255,102,0.14)', boxShadow: '0 40px 100px rgba(0,0,0,0.6)' }}>
+      <div className="w-full max-w-[520px] overflow-hidden rounded-[24px]" style={{ background: '#0a140a', border: '1px solid rgba(121,255,102,0.1)', boxShadow: '0 22px 52px rgba(0,0,0,0.34)' }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(121,255,102,0.08)' }}>
           <div>
             <div className="matrix-title" style={{ color: '#5e7f58', fontSize: '11px', letterSpacing: '0.08em' }}>New task</div>
@@ -1009,7 +1009,7 @@ function CreateTaskModal({
           <button onClick={onClose} className="rounded-xl px-4 py-2.5" style={{ background: 'rgba(121,255,102,0.06)', color: '#89bd80', fontSize: '13px' }}>
             Cancel
           </button>
-          <button onClick={onSubmit} className="rounded-xl px-4 py-2.5" style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16) 0%, rgba(72,168,66,0.26) 100%)', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 700, boxShadow: '0 0 24px rgba(90,255,90,0.12)' }}>
+          <button onClick={onSubmit} className="rounded-xl px-4 py-2.5" style={{ background: 'linear-gradient(180deg, rgba(24,53,24,0.96) 0%, rgba(17,41,17,0.98) 100%)', border: '1px solid rgba(121,255,102,0.14)', color: '#e8ffe1', fontSize: '13px', fontWeight: 700, boxShadow: '0 10px 22px rgba(0,0,0,0.2)' }}>
             {creating ? 'Adding...' : 'Add task'}
           </button>
         </div>
@@ -1035,7 +1035,7 @@ function InviteMemberModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(10px)' }} onClick={(event) => event.target === event.currentTarget && onClose()}>
-      <div className="w-full max-w-[520px] overflow-hidden rounded-[24px]" style={{ background: '#0a140a', border: '1px solid rgba(121,255,102,0.14)', boxShadow: '0 40px 100px rgba(0,0,0,0.6)' }}>
+      <div className="w-full max-w-[520px] overflow-hidden rounded-[24px]" style={{ background: '#0a140a', border: '1px solid rgba(121,255,102,0.1)', boxShadow: '0 22px 52px rgba(0,0,0,0.34)' }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(121,255,102,0.08)' }}>
           <div>
             <div className="matrix-title" style={{ color: '#5e7f58', fontSize: '11px', letterSpacing: '0.08em' }}>Project invite</div>
@@ -1086,7 +1086,7 @@ function InviteMemberModal({
           <button onClick={onClose} className="rounded-xl px-4 py-2.5" style={{ background: 'rgba(121,255,102,0.06)', color: '#89bd80', fontSize: '13px' }}>
             Cancel
           </button>
-          <button onClick={onSubmit} className="rounded-xl px-4 py-2.5" style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16) 0%, rgba(72,168,66,0.26) 100%)', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 700, boxShadow: '0 0 24px rgba(90,255,90,0.12)' }}>
+          <button onClick={onSubmit} className="rounded-xl px-4 py-2.5" style={{ background: 'linear-gradient(180deg, rgba(24,53,24,0.96) 0%, rgba(17,41,17,0.98) 100%)', border: '1px solid rgba(121,255,102,0.14)', color: '#e8ffe1', fontSize: '13px', fontWeight: 700, boxShadow: '0 10px 22px rgba(0,0,0,0.2)' }}>
             {inviting ? 'Inviting...' : 'Invite'}
           </button>
         </div>

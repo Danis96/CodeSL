@@ -120,7 +120,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
     >
       <div
         className="w-full flex overflow-hidden"
-        style={{ maxWidth: '880px', maxHeight: '90vh', background: '#0a140a', border: '1px solid rgba(121,255,102,0.14)', borderRadius: '20px', boxShadow: '0 40px 100px rgba(0,0,0,0.7)' }}
+        style={{ maxWidth: '880px', maxHeight: '90vh', background: '#0a140a', border: '1px solid rgba(121,255,102,0.1)', borderRadius: '20px', boxShadow: '0 24px 56px rgba(0,0,0,0.36)' }}
       >
         {/* Left panel */}
         <div className="flex-1 overflow-y-auto" style={{ minWidth: 0 }}>
@@ -400,7 +400,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
                 onClose();
               }}
               className="w-full rounded-xl py-3 mb-3 transition-all hover:opacity-90"
-              style={{ background: 'rgba(121,255,102,0.08)', color: '#8cff5a', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(121,255,102,0.14)' }}
+              style={{ background: 'rgba(121,255,102,0.06)', color: '#8cff5a', fontSize: '13px', fontWeight: 600, border: '1px solid rgba(121,255,102,0.1)' }}
             >
               {deleting ? 'Deleting...' : 'Delete Task'}
             </button>
@@ -432,7 +432,7 @@ export default function TaskModal({ task, onClose }: TaskModalProps) {
               }}
               disabled={deleting}
               className="w-full rounded-xl py-3 transition-all hover:opacity-90 active:scale-95"
-              style={{ background: 'linear-gradient(135deg, rgba(120,255,99,0.16) 0%, rgba(72,168,66,0.26) 100%)', border: '1px solid rgba(121,255,102,0.18)', color: '#e8ffe1', fontSize: '13px', fontWeight: 600, boxShadow: '0 0 24px rgba(90,255,90,0.12)' }}
+              style={{ background: 'linear-gradient(180deg, rgba(24,53,24,0.96) 0%, rgba(17,41,17,0.98) 100%)', border: '1px solid rgba(121,255,102,0.14)', color: '#e8ffe1', fontSize: '13px', fontWeight: 600, boxShadow: '0 10px 22px rgba(0,0,0,0.2)' }}
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -451,7 +451,7 @@ function SelectChip({ label, bg, color, options, onChange }: { label: string; bg
         {label}<ChevronDown size={10} />
       </button>
       {open && (
-        <div className="absolute top-8 left-0 z-50 rounded-xl overflow-hidden" style={{ background: '#0d180d', border: '1px solid rgba(121,255,102,0.14)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', minWidth: '140px' }}>
+        <div className="absolute top-8 left-0 z-50 rounded-xl overflow-hidden" style={{ background: '#0d180d', border: '1px solid rgba(121,255,102,0.1)', boxShadow: '0 12px 28px rgba(0,0,0,0.28)', minWidth: '140px' }}>
           {options.map((opt) => (
             <button key={opt} onClick={() => { onChange(opt); setOpen(false); }} className="w-full text-left px-3 py-2 transition-all hover:bg-white/5" style={{ color: opt === label ? color : '#89bd80', fontSize: '13px', background: opt === label ? bg : 'transparent' }}>
               {opt}
